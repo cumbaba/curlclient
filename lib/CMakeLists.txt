@@ -7,6 +7,7 @@ include_directories (
 
 add_library( defia.curlclient.lib
     CurlClient.cpp
+    ClientException.hpp
     HttpRequestType.hpp
 )
 
