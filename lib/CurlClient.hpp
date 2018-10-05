@@ -10,6 +10,8 @@
 
 #include "HttpRequestType.hpp"
 
+typedef std::map<std::string, std::string> Options;
+
 class CurlClient
 {
 
@@ -17,8 +19,10 @@ class CurlClient
         CurlClient();
         CurlClient(const std::string& aUser, const std::string& aPassword);
 
-        Json::Value executeGetJson(const std::string& aURI, bool& isSuccessfull= *(new bool(false)));
-        std::string executeGet(const std::string& aURI, bool& isSuccessfull = *(new bool(false)));
+        Json::Value executeGetJson(const std::string& aURI, const std::string& anAuthToken,
+                                   const Options& anOptions = Options());
+        std::string executeGet(const std::string& aURI, const std::__cxx11::string& anAuthToken,
+                               const Options& anOptions = Options());
 
 
         bool hasLoginCredentials();
@@ -29,8 +33,9 @@ class CurlClient
         void setUser(const std::string& value);
 
     private:
-        bool perform(const std::string& aURI, std::string& aResponse,
-                     const HttpRequestType::Type& aHttpRequestType = HttpRequestType::Type::GET);
+        std::string perform(const std::string& aURI, const std::__cxx11::string& anAuthToken,
+                            const Options& anOptions = Options(),
+                            const HttpRequestType::Type& aHttpRequestType = HttpRequestType::Type::GET);
         std::string user;
         std::string password;
 

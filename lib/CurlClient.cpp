@@ -13,7 +13,8 @@ CurlClient::CurlClient(const std::string& aUser, const std::string& aPassword):
 {
 }
 
-Json::Value CurlClient::executeGetJson(const std::string& aURI, bool& isSuccessfull)
+Json::Value CurlClient::executeGetJson(const std::string& aURI, const std::string& anAuthToken,
+                                       const Options& anOptions)
 {
     Json::Value root;
     std::string errors;
@@ -21,62 +22,63 @@ Json::Value CurlClient::executeGetJson(const std::string& aURI, bool& isSuccessf
     Json::CharReaderBuilder builder;
     Json::CharReader* reader = builder.newCharReader();
 
-    std::string response = this->executeGet(aURI, isSuccessfull);
+    std::string response = this->executeGet(aURI, anAuthToken, anOptions);
     reader->parse(response.c_str(), response.c_str() + response.size(), &root, &errors);
 
     if (!errors.empty())
     {
-        std::cout << errors << std::endl;
+        std::cerr << errors << std::endl;
     }
 
     delete reader;
     return root;
 }
 
-std::string CurlClient::executeGet(const std::string& aURI, bool& isSuccessfull)
+std::string CurlClient::executeGet(const std::string& aURI, const std::string& anAuthToken, const Options& anOptions)
 {
-    std::string response;
-    isSuccessfull = perform(aURI, response, HttpRequestType::GET);
-    return response;
+    return perform(aURI, anAuthToken, anOptions, HttpRequestType::GET);
 }
 
-bool CurlClient::perform(const std::string& aURI, std::string& aResult, const HttpRequestType::Type& aHttpRequestType)
+// TODO authToken and options
+std::string CurlClient::perform(const std::string& aURI, const std::string& anAuthToken, const Options& anOptions,
+                                const HttpRequestType::Type& aHttpRequestType)
 {
-    if (aHttpRequestType == HttpRequestType::GET)
+    std::string result;
+
+    try
     {
-        try
-        {
-            curlpp::Cleanup cleanup;
-            std::stringstream resultStream;
-            curlpp::Easy easy;
+        curlpp::Cleanup cleanup;
+        std::stringstream resultStream;
+        curlpp::Easy easy;
 
-            easy.setOpt<curlpp::options::Url>(aURI);
-            easy.setOpt<cURLpp::Options::WriteStream>(&resultStream);
+        easy.setOpt<curlpp::options::Url>(aURI);
+        easy.setOpt<curlpp::options::Verbose>(true);
+        easy.setOpt<curlpp::options::SslVerifyPeer>(false);
+        easy.setOpt<curlpp::options::CustomRequest>(HttpRequestType::toString(aHttpRequestType));
+        easy.setOpt<cURLpp::Options::WriteStream>(&resultStream);
 
-            if (hasLoginCredentials())
-            {
-                easy.setOpt<curlpp::options::UserPwd>(user + ":" + password);
-            }
+        if (hasLoginCredentials())
+        {
+            easy.setOpt<curlpp::options::UserPwd>(user + ":" + password);
+        }
 
-            easy.perform();
-            aResult = resultStream.str();
-            return true;
-        }
-        catch (const curlpp::RuntimeError& ex)
-        {
-            std::cout << ex.what() << std::endl;
-        }
-        catch (const curlpp::LogicError& ex)
-        {
-            std::cout << ex.what() << std::endl;
-        }
-        catch (const std::exception& ex)
-        {
-            std::cout << ex.what() << std::endl;
-        }
+        easy.perform();
+        result = resultStream.str();
+    }
+    catch (const curlpp::RuntimeError& ex)
+    {
+        std::cout << ex.what() << std::endl;
+    }
+    catch (const curlpp::LogicError& ex)
+    {
+        std::cout << ex.what() << std::endl;
+    }
+    catch (const std::exception& ex)
+    {
+        std::cout << ex.what() << std::endl;
     }
 
-    return false;
+    return result;
 }
 
 bool CurlClient::hasLoginCredentials()
